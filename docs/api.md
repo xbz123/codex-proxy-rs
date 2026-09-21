@@ -548,6 +548,39 @@ Images、独立 Search 及管理员连接测试不受该文本模型限制；连
 避免已轮换的凭据因代理状态变化而丢失。完成导入或请求取消后自动释放保护。
 OAuth 等待回调期间不持有保护；提交仍拒绝已删除或连接配置改变的代理。
 
+### 账号自动唤醒
+
+管理端账号的“更多操作 → 自动唤醒”可为 OpenAI OAuth 账号设置计划，默认关闭。
+每次使用指定模型发送固定最小连接测试消息，消耗上游额度，不作为普通 Responses 用量记录。
+
+- `GET /api/admin/accounts/auto-wake?accountId=...`：读取配置和最近执行状态。
+- `POST /api/admin/accounts/auto-wake`：保存配置，仅管理员可调用。
+
+```json
+{
+  "accountId": "acct_example",
+  "config": {
+    "enabled": true,
+    "trigger": "scheduled",
+    "model": "gpt-5.6-sol",
+    "cron": "0 8,13,18 * * *",
+    "timezone": "Asia/Shanghai"
+  }
+}
+```
+
+`trigger` 支持 `scheduled`、`fiveHourReset`、`weeklyReset`、`eitherReset`。
+定时使用五字段 Cron 和 IANA 时区；星期可使用 `MON`–`SUN`。启用时模型必须存在于账号模型目录。
+重置模式跟踪账号公共 5 小时/周额度窗口，到期至少 2 分钟后刷新额度，只有收到新鲜且明确可用的
+窗口观测才发送请求；缺失额度或查询失败时每 5 分钟复核，不推测重置成功。两个窗口同时到期合并为一次请求。
+
+响应 `data` 包含 `accountId`、`generation`、`config`、`state`。`state.nextRunAt` 与
+`state.lastAttemptAt` 为 Unix 秒或 `null`；`lastStatus` 为 `claimed`、`succeeded`、`failed`、
+`skipped`、`waiting` 或 `null`，`lastMessage` 提供安全摘要。重新打开弹窗可读取最新状态。
+所有触发至少间隔 5 分钟，停用、凭据异常、限流或额度耗尽账号会跳过。保存设置重新计算下次定时；
+请求领取记录在发送前持久化，重启不会补发已经领取的请求。超时或失败不立即重试，等待后续计划。
+关闭计划阻止后续领取，已经领取的请求可能仍完成；配置修改不会清除已消费窗口与最近执行时间。
+
 ### 账号连接测试 SSE
 
 `GET /api/admin/accounts/connection-test` 固定探测请求指定的账号，不参与普通账号轮换。成功流沿用

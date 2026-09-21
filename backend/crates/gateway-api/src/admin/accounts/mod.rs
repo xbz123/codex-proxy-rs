@@ -64,6 +64,7 @@ const MAX_ACCOUNT_DELETE_BATCH: usize = 200;
 const MAX_ACCOUNT_GROUP_BATCH: usize = 1000;
 const MAX_AVATAR_VERSION_BYTES: usize = 32;
 
+mod auto_wake;
 mod credentials;
 mod handlers;
 mod import_tasks;

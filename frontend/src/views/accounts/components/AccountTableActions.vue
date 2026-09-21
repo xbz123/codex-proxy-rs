@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { AccountRow } from '../constants'
-import { KeyRound, MoreHorizontal, Pencil, RefreshCw, RotateCcw, Trash2, Wifi } from '@lucide/vue'
+import { AlarmClock, KeyRound, MoreHorizontal, Pencil, RefreshCw, RotateCcw, Trash2, Wifi } from '@lucide/vue'
 
 import BaseIconButton from '@/components/base/BaseIconButton.vue'
 import BaseMenuItem from '@/components/base/BaseMenuItem.vue'
@@ -15,6 +15,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
+  autoWake: [account: AccountRow]
   edit: [account: AccountRow]
   delete: [account: AccountRow]
   recover: [accountId: string]
@@ -54,6 +55,15 @@ const emit = defineEmits<{
 
       <template #default="{ close }">
         <div class="w-40 p-1.5">
+          <BaseMenuItem
+            v-if="account.provider === 'openai' && account.authenticationKind === 'oauth'"
+            @click.stop="(close(), emit('autoWake', account))"
+          >
+            <template #icon>
+              <AlarmClock class="size-3.5 text-cp-text-quaternary" />
+            </template>
+            自动唤醒
+          </BaseMenuItem>
           <BaseMenuItem
             :loading="testing"
             :disabled="testing"

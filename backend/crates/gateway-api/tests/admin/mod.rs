@@ -162,6 +162,7 @@ impl AdminTestFixture {
             unused,
             settings.clone(),
             gateway_admin::ports::backup::BackupStorePorts::disabled(),
+            Arc::new(accounts::auto_wake::MemoryAutoWake::default()),
         );
         let providers: Vec<Arc<dyn ProviderAdmin>> = vec![
             Arc::new(UnusedProvider::new("openai", Arc::clone(&provider_error))),

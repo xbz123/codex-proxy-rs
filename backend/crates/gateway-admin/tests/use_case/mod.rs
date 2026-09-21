@@ -2,6 +2,7 @@ mod account_groups;
 mod accounts;
 mod auth;
 mod auth_key;
+mod auto_wake;
 mod backup;
 mod client_keys;
 mod freeze_recovery;
@@ -98,6 +99,7 @@ pub(super) struct AdminHarness {
     observability: Arc<dyn ObservabilityStore>,
     settings: Arc<dyn SettingsStore>,
     backup: BackupStorePorts,
+    auto_wake: Arc<dyn gateway_admin::ports::auto_wake::AutoWakeRepository>,
     providers: Vec<Arc<dyn ProviderAdmin>>,
     probe: Arc<dyn AccountProbe>,
     system: Arc<dyn SystemOperations>,
@@ -120,6 +122,7 @@ impl AdminHarness {
             observability: unavailable.clone(),
             settings: unavailable,
             backup: BackupStorePorts::disabled(),
+            auto_wake: Arc::new(auto_wake::MemoryAutoWake::default()),
             providers: vec![
                 Arc::new(UnavailableProvider::new("openai")),
                 Arc::new(UnavailableProvider::new("xai")),
@@ -241,6 +244,7 @@ impl AdminHarness {
                 self.observability,
                 self.settings,
                 self.backup,
+                self.auto_wake,
             ),
             gateway_admin::AdminRuntimePorts {
                 pricing_source: Arc::new(UnavailablePricingSource),

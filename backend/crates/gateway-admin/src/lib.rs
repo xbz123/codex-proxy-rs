@@ -27,10 +27,10 @@ pub use use_case::key_usage::KeyUsageService;
 
 pub use use_case::{
     account_groups::AccountGroupService, accounts::AccountsService, auth::AuthService,
-    backup::BackupService, client_distribution::ClientDistributionService,
-    client_keys::ClientKeyService, import_tasks::ImportTasksService,
-    observability::ObservabilityService, openai::OpenAiService, proxies::ProxiesService,
-    settings::SettingsService, system::SystemService, xai::XaiService,
+    auto_wake::AutoWakeService, backup::BackupService,
+    client_distribution::ClientDistributionService, client_keys::ClientKeyService,
+    import_tasks::ImportTasksService, observability::ObservabilityService, openai::OpenAiService,
+    proxies::ProxiesService, settings::SettingsService, system::SystemService, xai::XaiService,
 };
 
 use model::{AdminError, AdminErrorKind};
@@ -182,6 +182,7 @@ pub enum AdminConfigError {
 /// 字段全部私有；调用方经 accessor 直接调用能力，不需要命名内部 `use_case` 模块。
 #[derive(Clone)]
 pub struct AdminServices {
+    auto_wake: Arc<dyn use_case::auto_wake::AutoWakeService>,
     proxies: Arc<dyn ProxiesService>,
     auth: Arc<dyn AuthService>,
     key_usage: Arc<dyn KeyUsageService>,
@@ -199,6 +200,10 @@ pub struct AdminServices {
 }
 
 impl AdminServices {
+    #[must_use]
+    pub fn auto_wake(&self) -> &dyn use_case::auto_wake::AutoWakeService {
+        self.auto_wake.as_ref()
+    }
     #[must_use]
     pub fn import_tasks(&self) -> &dyn ImportTasksService {
         self.import_tasks.as_ref()
@@ -393,7 +398,13 @@ pub async fn initialize(
     let import_tasks =
         use_case::import_tasks::DefaultImportTasksService::new(openai.clone(), xai.clone());
     let import_task = use_case::import_tasks::ImportTaskWorker(import_tasks.clone());
+    let auto_wake = Arc::new(use_case::auto_wake::DefaultAutoWakeService::new(
+        store.auto_wake(),
+        accounts.clone(),
+        store.accounts(),
+    ));
     let services = AdminServices {
+        auto_wake: auto_wake.clone(),
         key_usage,
         proxies: Arc::new(use_case::proxies::DefaultProxiesService::new(
             store.proxies(),
@@ -454,6 +465,9 @@ pub async fn initialize(
     .map_err(|_| AdminError::internal("导入 Worker 注册信息不合法"))?;
     worker_contributions.push(WorkerContribution::Registration(registration));
     worker_contributions.extend(freeze_recovery_worker_contribution(freeze_recovery)?);
+    worker_contributions.extend(auto_wake_worker_contribution(
+        use_case::auto_wake::AutoWakeTask(auto_wake),
+    )?);
     Ok(AdminBundle {
         services,
         worker_contributions,
@@ -529,4 +543,31 @@ fn map_provider_registry_error(error: ProviderAdminError) -> AdminError {
         ProviderAdminErrorKind::Internal => AdminErrorKind::Internal,
     };
     AdminError::new(kind, "Provider 注册表初始化失败")
+}
+
+fn auto_wake_worker_contribution(
+    task: use_case::auto_wake::AutoWakeTask,
+) -> Result<Vec<WorkerContribution>, AdminError> {
+    let id = WorkerId::try_new(WorkerKind::AccountAutoWake, "account-auto-wake")
+        .map_err(|_| AdminError::internal("自动唤醒 Worker ID 不合法"))?;
+    let schedule = WorkerSchedule::try_new(
+        Duration::from_secs(30),
+        Duration::from_secs(1),
+        Duration::from_secs(60),
+        Duration::from_secs(15 * 60),
+        Duration::from_secs(5 * 60),
+    )
+    .map_err(|_| AdminError::internal("自动唤醒 Worker 调度配置不合法"))?;
+    let lease = WorkerLeaseRequest::try_new(id.clone(), Duration::from_secs(15 * 60))
+        .map_err(|_| AdminError::internal("自动唤醒 Worker 租约配置不合法"))?;
+    let registration = WorkerRegistration::try_new(
+        id,
+        WorkerRunnable::Scheduled {
+            schedule,
+            lease: Some(lease),
+            task: Box::new(task),
+        },
+    )
+    .map_err(|_| AdminError::internal("自动唤醒 Worker 注册信息不合法"))?;
+    Ok(vec![WorkerContribution::Registration(registration)])
 }

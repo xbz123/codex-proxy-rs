@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import type { AccountRow } from './constants'
 import { ChevronDown } from '@lucide/vue'
 import { ref } from 'vue'
-
 import AccountGroupMarks from '@/components/AccountGroupMarks.vue'
+
 import BaseCard from '@/components/base/BaseCard.vue'
 import BaseCheckbox from '@/components/base/BaseCheckbox.vue'
 import BaseConfirmModal from '@/components/base/BaseConfirmModal.vue'
@@ -14,6 +15,7 @@ import { useTableColumns } from '@/components/base/BaseTable/useTableColumns'
 import LastUsedAtCell from '@/components/LastUsedAtCell.vue'
 import ProviderIconGroup from '@/components/ProviderIconGroup.vue'
 import { useAccountGroupCatalog } from '@/composables/useAccountGroupCatalog'
+import AccountAutoWakeModal from './components/AccountAutoWakeModal.vue'
 import AccountBatchEditModal from './components/AccountBatchEditModal.vue'
 import AccountConnectionTestModal from './components/AccountConnectionTestModal.vue'
 import AccountCreateModal from './components/AccountCreateModal/index.vue'
@@ -186,6 +188,12 @@ const {
   reloadAccounts: loadAccounts,
   reloadGroups: loadGroups,
 })
+const showAutoWake = ref(false)
+const wakeAccount = ref<AccountRow | null>(null)
+function openAutoWake(account: AccountRow) {
+  wakeAccount.value = account
+  showAutoWake.value = true
+}
 </script>
 
 <template>
@@ -329,6 +337,7 @@ const {
                 @refresh="handleRefresh"
                 @reauthorize="openReauthorizeAccount"
                 @test="openConnectionTest"
+                @auto-wake="openAutoWake"
               />
             </template>
 
@@ -357,6 +366,7 @@ const {
       </template>
     </BaseCard>
 
+    <AccountAutoWakeModal v-model="showAutoWake" :account="wakeAccount" />
     <AccountConnectionTestModal
       v-model="showConnectionTestModal"
       v-model:selected-model="connectionTestSelectedModel"

@@ -1,5 +1,6 @@
 //! 管理用例依赖的外部能力端口。
 
+pub mod auto_wake;
 pub mod backup;
 pub mod client_distribution;
 pub mod pricing;

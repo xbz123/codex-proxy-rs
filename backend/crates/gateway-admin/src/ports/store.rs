@@ -488,6 +488,7 @@ pub struct AdminStorePorts {
     observability: Arc<dyn ObservabilityStore>,
     settings: Arc<dyn SettingsStore>,
     backup: BackupStorePorts,
+    auto_wake: Arc<dyn super::auto_wake::AutoWakeRepository>,
 }
 
 impl AdminStorePorts {
@@ -499,6 +500,7 @@ impl AdminStorePorts {
         observability: Arc<dyn ObservabilityStore>,
         settings: Arc<dyn SettingsStore>,
         backup: BackupStorePorts,
+        auto_wake: Arc<dyn super::auto_wake::AutoWakeRepository>,
     ) -> Self {
         Self {
             accounts,
@@ -507,6 +509,7 @@ impl AdminStorePorts {
             observability,
             settings,
             backup,
+            auto_wake,
         }
     }
 
@@ -548,6 +551,11 @@ impl AdminStorePorts {
     #[must_use]
     pub fn settings(&self) -> Arc<dyn SettingsStore> {
         self.settings.clone()
+    }
+
+    #[must_use]
+    pub fn auto_wake(&self) -> Arc<dyn super::auto_wake::AutoWakeRepository> {
+        self.auto_wake.clone()
     }
 
     #[must_use]

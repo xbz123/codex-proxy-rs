@@ -1,5 +1,6 @@
 //! 模型模块测试：镜像 src/model/ 中带逻辑的模块。
 
+mod auto_wake;
 mod backup;
 mod provider_credentials;
 mod quota_forecast;

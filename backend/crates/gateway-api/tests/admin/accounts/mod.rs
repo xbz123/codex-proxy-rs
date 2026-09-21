@@ -1,3 +1,4 @@
+pub(super) mod auto_wake;
 mod handlers;
 mod import_tasks;
 mod presenter;

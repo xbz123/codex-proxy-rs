@@ -13,6 +13,7 @@ use uuid::Uuid;
 mod account_groups;
 mod admin_security_audit;
 mod admission_recovery;
+mod auto_wake;
 mod backup;
 mod client_budgets;
 mod client_keys;
@@ -225,6 +226,7 @@ async fn connect_and_migrate_should_apply_all_migrations_once_and_reopen_cleanly
         first_tables,
         [
             "_sqlx_migrations",
+            "account_auto_wake",
             "account_group_accounts",
             "account_groups",
             "admin_audit_events",

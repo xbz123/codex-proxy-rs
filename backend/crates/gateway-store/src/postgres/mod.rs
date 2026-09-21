@@ -14,6 +14,7 @@ use crate::{
 mod account_groups;
 mod admin_security_audit;
 mod admission_recovery;
+mod auto_wake;
 mod backup;
 mod client_budgets;
 mod client_keys;
@@ -32,6 +33,7 @@ mod usage_facts;
 pub use account_groups::*;
 pub use admin_security_audit::*;
 pub use admission_recovery::*;
+pub use auto_wake::*;
 pub use backup::*;
 pub use client_budgets::PgClientBudgetStore;
 pub use client_keys::*;
